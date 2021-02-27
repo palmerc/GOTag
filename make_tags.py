@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import argparse
 import csv
 import math
 from reportlab.pdfgen.canvas import Canvas
@@ -6,11 +8,6 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Frame
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
-
-return_address = """\
-GO! Orchestra
-Org nr. 922 581 762\
-"""
 
 
 class Instrument:
@@ -34,6 +31,11 @@ class Instrument:
 
     def print_please(self):
         return self.row['PRINT'] == 'TRUE'
+
+
+def address(txt_path):
+    with open(txt_path, 'r') as f:
+        return f.read()
 
 
 def instruments_from_csv(csv_path):
@@ -85,7 +87,16 @@ def body_style():
 
 
 def main():
-    instruments = instruments_from_csv('./violin_inventory.csv')
+    parser = argparse.ArgumentParser(description='Print inventory tags')
+    parser.add_argument('-a', '--address', dest='address',
+                        help='set the path of the address to use', default="./address.txt")
+    parser.add_argument('-i', '--inventory', dest='inventory',
+                        help='set the path of the inventory to use', default="./inventory.csv")
+    parser.add_argument('-o', '--output', dest='output',
+                        help='set the path of the pdf to output', default="./inventory.pdf")
+    args = parser.parse_args()
+
+    instruments = instruments_from_csv(args.inventory)
 
     tag_width = 69 * mm
     tag_height = 98 * mm
@@ -94,7 +105,7 @@ def main():
     tag_index = 0
     page = 0
 
-    canvas = Canvas('tuto1.pdf', pagesize=A4)
+    canvas = Canvas(args.output, pagesize=A4)
     canvas.setFont('Courier', 16)
     for instrument in instruments:
         if not instrument.print_please():
@@ -114,7 +125,7 @@ def main():
         y = row * tag_height
         parts = []
         tag = Frame(x, y, tag_width, tag_height, showBoundary=1)
-        parts.append(Paragraph(replace_new_lines(return_address), address_style()))
+        parts.append(Paragraph(replace_new_lines(address(args.address)), address_style()))
         parts.append(Paragraph(replace_new_lines(inst_text), body_style()))
         tag.addFromList(parts, canvas)
         tag_index += 1
